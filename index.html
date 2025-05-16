@@ -4,23 +4,24 @@
     <meta charset="UTF-8">
     <title>Jogo WebGL com Crash</title>
     <style>
-        body { margin: 0; background: #111; color: #fff; font-family: Arial; display: flex; flex-direction: column; align-items: center; }
-        canvas { border: 2px solid #fff; }
-        #status { position: absolute; top: 10px; left: 10px; font-size: 20px; }
-        #warning { margin: 10px; font-size: 16px; color: red; }
+        body { margin: 0; background: #000; color: #fff; font-family: Arial; text-align: center; }
+        canvas { border: 2px solid #fff; display: block; margin: 0 auto; }
+        #status { position: absolute; top: 10px; left: 10px; font-size: 18px; }
+        #warning { margin: 10px; color: red; }
     </style>
 </head>
 <body>
-    <div id="warning">AVISO: Perder pode crashar seu navegador! Teste em ambiente controlado.</div>
-    <div id="status">Mova o mouse para evitar o círculo vermelho!</div>
+    <div id="warning">AVISO: Perder pode travar seu navegador! Teste com cuidado.</div>
+    <div id="status">Use o mouse para evitar o círculo vermelho!</div>
     <canvas id="gl-canvas" width="800" height="600"></canvas>
 
     <script>
-        // Configuração do WebGL
+        // Inicializa WebGL
         const canvas = document.getElementById('gl-canvas');
         const gl = canvas.getContext('webgl');
         if (!gl) {
-            alert('WebGL não suportado. O jogo não funcionará.');
+            alert('WebGL não suportado. Use Chrome/Firefox atualizado.');
+            document.getElementById('status').textContent = 'Erro: WebGL não suportado.';
             throw new Error('WebGL não suportado');
         }
 
@@ -29,7 +30,6 @@
             attribute vec2 a_position;
             uniform vec2 u_resolution;
             void main() {
-                // Converte de pixels para espaço de clipe (-1 a 1)
                 vec2 clipSpace = (a_position / u_resolution) * 2.0 - 1.0;
                 gl_Position = vec4(clipSpace * vec2(1, -1), 0.0, 1.0);
             }
@@ -42,20 +42,22 @@
             }
         `;
 
-        // Função para criar shader
+        // Compila shaders
         function createShader(gl, type, source) {
             const shader = gl.createShader(type);
             gl.shaderSource(shader, source);
             gl.compileShader(shader);
             if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-                console.error('Erro no shader:', gl.getShaderInfoLog(shader));
+                const error = gl.getShaderInfoLog(shader);
+                document.getElementById('status').textContent = 'Erro no shader: veja console.';
+                console.error('Erro no shader:', error);
                 gl.deleteShader(shader);
-                return null;
+                throw new Error('Shader falhou: ' + error);
             }
             return shader;
         }
 
-        // Criar programa
+        // Cria programa
         const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
         const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
         const program = gl.createProgram();
@@ -63,86 +65,81 @@
         gl.attachShader(program, fragmentShader);
         gl.linkProgram(program);
         if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-            console.error('Erro ao linkar programa:', gl.getProgramInfoLog(program));
-            return;
+            const error = gl.getProgramInfoLog(program);
+            document.getElementById('status').textContent = 'Erro no programa: veja console.';
+            console.error('Erro no programa:', error);
+            throw new Error('Programa falhou: ' + error);
         }
         gl.useProgram(program);
 
-        // Localizações
+        // Atributos e uniformes
         const positionLocation = gl.getAttribLocation(program, 'a_position');
         const resolutionLocation = gl.getUniformLocation(program, 'u_resolution');
         const colorLocation = gl.getUniformLocation(program, 'u_color');
+        gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
 
         // Estado do jogo
-        let playerPos = { x: 400, y: 300 }; // Centro do canvas
+        let playerPos = { x: 400, y: 300 };
         let enemyPos = { x: 100, y: 100 };
-        let enemySpeed = 2;
         let gameOver = false;
 
-        // Buffer para jogador (quadrado 50x50)
+        // Vértices do jogador (quadrado 40x40)
         const playerVertices = new Float32Array([
-            -25, -25,  25, -25,  -25, 25, // Triângulo 1
-            25, -25,  25, 25,  -25, 25   // Triângulo 2
+            -20, -20,  20, -20,  -20, 20,
+            20, -20,  20, 20,  -20, 20
         ]);
         const playerBuffer = gl.createBuffer();
 
-        // Buffer para inimigo (círculo aproximado com triângulos)
-        const enemyVertices = new Float32Array(generateCircleVertices(20, 30)); // Raio 30
+        // Vértices do inimigo (círculo com 12 lados, raio 25)
+        const enemyVertices = new Float32Array(generateCircleVertices(12, 25));
         const enemyBuffer = gl.createBuffer();
 
-        // Função para gerar vértices de um círculo
         function generateCircleVertices(sides, radius) {
             const vertices = [];
             for (let i = 0; i < sides; i++) {
                 const angle1 = (i / sides) * Math.PI * 2;
                 const angle2 = ((i + 1) / sides) * Math.PI * 2;
-                vertices.push(0, 0); // Centro
+                vertices.push(0, 0);
                 vertices.push(radius * Math.cos(angle1), radius * Math.sin(angle1));
                 vertices.push(radius * Math.cos(angle2), radius * Math.sin(angle2));
             }
             return vertices;
         }
 
-        // Movimento do jogador com o mouse
+        // Movimento do jogador
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
             playerPos.x = e.clientX - rect.left;
             playerPos.y = e.clientY - rect.top;
         });
 
-        // Função para desenhar um objeto
+        // Desenhar objeto
         function drawObject(buffer, vertices, pos, color) {
             gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-            gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-            gl.enableVertexAttribArray(positionLocation);
-            gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-            gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
-            gl.uniform4f(colorLocation, ...color);
-
-            // Ajustar posição
             const translatedVertices = new Float32Array(vertices.length);
             for (let i = 0; i < vertices.length; i += 2) {
                 translatedVertices[i] = vertices[i] + pos.x;
                 translatedVertices[i + 1] = vertices[i + 1] + pos.y;
             }
             gl.bufferData(gl.ARRAY_BUFFER, translatedVertices, gl.STATIC_DRAW);
-
+            gl.enableVertexAttribArray(positionLocation);
+            gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+            gl.uniform4f(colorLocation, ...color);
             gl.drawArrays(gl.TRIANGLES, 0, vertices.length / 2);
         }
 
-        // Função para verificar colisão
+        // Colisão
         function checkCollision() {
             const dx = playerPos.x - enemyPos.x;
             const dy = playerPos.y - enemyPos.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            return distance < 55; // Soma dos raios (25 + 30)
+            return Math.sqrt(dx * dx + dy * dy) < 45; // Soma dos raios
         }
 
         // Função de crash
         function crashWebGL() {
-            document.getElementById('status').textContent = 'VOCÊ PERDEU! CRASHANDO...';
+            document.getElementById('status').textContent = 'VOCÊ PERDEU! TENTANDO CRASHAR...';
             try {
-                // Criar mais de 1 milhão de vértices
+                // 1 milhão de pontos
                 const vertexCount = 1000000;
                 const crashVertices = new Float32Array(vertexCount * 2);
                 for (let i = 0; i < vertexCount * 2; i += 2) {
@@ -153,58 +150,61 @@
                 gl.bindBuffer(gl.ARRAY_BUFFER, crashBuffer);
                 gl.bufferData(gl.ARRAY_BUFFER, crashVertices, gl.STATIC_DRAW);
 
-                // Criar texturas enormes
+                // Texturas grandes
                 const textures = [];
-                for (let i = 0; i < 50000900000000000000000000000000000000000000000000000; i++) {
+                for (let i = 0; i < 20; i++) {
                     const texture = gl.createTexture();
                     gl.bindTexture(gl.TEXTURE_2D, texture);
-                    const size = 8192;
+                    const size = 4096; // Menor para mais compatibilidade
                     const data = new Uint8Array(size * size * 4);
                     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
                     textures.push(texture);
                 }
 
-                // Loop de renderização intensa
+                // Loop de renderização
                 function crashLoop() {
                     gl.clear(gl.COLOR_BUFFER_BIT);
                     gl.bindBuffer(gl.ARRAY_BUFFER, crashBuffer);
                     gl.enableVertexAttribArray(positionLocation);
                     gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
                     gl.uniform4f(colorLocation, 1, 0, 0, 1);
-
-                    // Desenhar 1 milhão de pontos
-                    for (let i = 0; i < 10000000000000000000000000000000000000000000000000000; i++) {
-                        gl.drawArrays(gl.POINTS, 0, vertexCount);
-                    }
-
-                    // Continuar até travar
+                    gl.drawArrays(gl.POINTS, 0, vertexCount);
                     requestAnimationFrame(crashLoop);
                 }
                 crashLoop();
+
+                // Sobrecarga extra de memória
+                setTimeout(() => {
+                    while (true) {
+                        new Array(1000000).fill(Math.random());
+                    }
+                }, 1000);
             } catch (e) {
-                console.error('Erro durante o crash:', e);
+                document.getElementById('status').textContent = 'Crash falhou: veja console.';
+                console.error('Erro no crash:', e);
             }
         }
 
-        // Loop principal do jogo
+        // Loop do jogo
         function gameLoop() {
             if (gameOver) return;
 
             // Mover inimigo
-            enemyPos.x += (Math.random() - 0.5) * enemySpeed;
-            enemyPos.y += (Math.random() - 0.5) * enemySpeed;
-            enemyPos.x = Math.max(30, Math.min(canvas.width - 30, enemyPos.x));
-            enemyPos.y = Math.max(30, Math.min(canvas.height - 30, enemyPos.y));
+            const dx = playerPos.x - enemyPos.x;
+            const dy = playerPos.y - enemyPos.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            enemyPos.x += (dx / dist) * 2; // Segue o jogador
+            enemyPos.y += (dy / dist) * 2;
+            enemyPos.x = Math.max(25, Math.min(canvas.width - 25, enemyPos.x));
+            enemyPos.y = Math.max(25, Math.min(canvas.height - 25, enemyPos.y));
 
-            // Limpar canvas
+            // Desenhar
             gl.clearColor(0.0, 0.0, 0.0, 1.0);
             gl.clear(gl.COLOR_BUFFER_BIT);
+            drawObject(playerBuffer, playerVertices, playerPos, [0, 1, 0, 1]);
+            drawObject(enemyBuffer, enemyVertices, enemyPos, [1, 0, 0, 1]);
 
-            // Desenhar jogador e inimigo
-            drawObject(playerBuffer, playerVertices, playerPos, [0, 1, 0, 1]); // Verde
-            drawObject(enemyBuffer, enemyVertices, enemyPos, [1, 0, 0, 1]); // Vermelho
-
-            // Verificar colisão
+            // Colisão
             if (checkCollision()) {
                 gameOver = true;
                 crashWebGL();
@@ -213,8 +213,7 @@
             }
         }
 
-        // Iniciar jogo
-        gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+        // Iniciar
         gameLoop();
     </script>
 </body>
